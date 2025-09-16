@@ -1,79 +1,154 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Weather App</title>
+  <title>Xzavior Weather</title>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom, #a0d8ef, #ffffff);
-      color: #333;
+      background: linear-gradient(to bottom, #4facfe, #00f2fe);
+      color: #fff;
       text-align: center;
       padding: 20px;
       margin: 0;
-      transition: background 0.3s;
+      transition: background 0.6s ease;
     }
     body.dark {
-      background: #1e1e1e;
-      color: #fff;
+      background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
     }
+
     .container {
-      max-width: 400px;
+      max-width: 420px;
       margin: auto;
     }
-    input, button {
-      width: 80%;
-      padding: 10px;
-      margin: 10px auto;
-      font-size: 16px;
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 10px;
+      animation: fadeInDown 1s ease;
+    }
+
+    input {
+      width: 75%;
+      padding: 12px;
+      margin-top: 15px;
+      border-radius: 25px;
       border: none;
-      border-radius: 5px;
+      outline: none;
+      font-size: 16px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
     }
+    input:focus {
+      box-shadow: 0 0 15px #00f2fe;
+      transform: scale(1.05);
+    }
+
     button {
-      background-color: #007BFF;
+      margin-top: 12px;
+      width: 85%;
+      padding: 12px;
+      border-radius: 25px;
+      border: none;
+      background: linear-gradient(to right, #007BFF, #00c6ff);
       color: white;
+      font-size: 16px;
       cursor: pointer;
+      transition: transform 0.3s ease, background 0.3s;
     }
+    button:hover {
+      transform: scale(1.05);
+      background: linear-gradient(to right, #0056b3, #0099cc);
+    }
+
     .weather, .forecast {
-      background: white;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
       margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 18px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      animation: fadeInUp 1s ease;
     }
     .dark .weather, .dark .forecast {
-      background: #333;
+      background: rgba(0, 0, 0, 0.35);
     }
-    .toggle-dark {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      cursor: pointer;
-    }
-    img {
-      width: 80px;
-    }
+
     .forecast-day {
       display: inline-block;
       width: 80px;
-      margin: 10px;
+      margin: 12px;
+      animation: fadeIn 0.8s ease forwards;
+      opacity: 0;
+    }
+    .forecast-day:nth-child(1) { animation-delay: 0.2s; }
+    .forecast-day:nth-child(2) { animation-delay: 0.4s; }
+    .forecast-day:nth-child(3) { animation-delay: 0.6s; }
+    .forecast-day:nth-child(4) { animation-delay: 0.8s; }
+    .forecast-day:nth-child(5) { animation-delay: 1s; }
+
+    img {
+      width: 70px;
+    }
+
+    .toggle-dark {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      cursor: pointer;
+      font-size: 22px;
+      transition: transform 0.3s ease;
+    }
+    .toggle-dark:hover {
+      transform: rotate(180deg);
+    }
+
+    /* Animations */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
     }
   </style>
 </head>
 <body>
   <div class="toggle-dark" onclick="toggleDarkMode()">🌓</div>
   <div class="container">
-    <h1>🌦 Weather App</h1>
+    <h1>🌦 Xzavior Weather</h1>
     <input type="text" id="cityInput" placeholder="Enter city name">
     <button onclick="getWeather()">Check Weather</button>
-    <button onclick="getLocationWeather()">Use My Location</button><div class="weather" id="weatherInfo"></div>
-<div class="forecast" id="forecastInfo"></div>
+    <button onclick="getLocationWeather()">📍 Use My Location</button>
+    <div class="weather" id="weatherInfo"></div>
+    <div class="forecast" id="forecastInfo"></div>
+  </div>
 
-  </div>  <script>
+  <script>
     const apiKey = "8cc702d7f393d85a8e200a340c153960";
 
     function toggleDarkMode() {
       document.body.classList.toggle('dark');
+    }
+
+    function setBackground(condition) {
+      const lower = condition.toLowerCase();
+      if (lower.includes("cloud")) {
+        document.body.style.background = "linear-gradient(to bottom, #bdc3c7, #2c3e50)";
+      } else if (lower.includes("rain")) {
+        document.body.style.background = "linear-gradient(to bottom, #2c3e50, #3498db)";
+      } else if (lower.includes("clear")) {
+        document.body.style.background = "linear-gradient(to bottom, #4facfe, #00f2fe)";
+      } else if (lower.includes("snow")) {
+        document.body.style.background = "linear-gradient(to bottom, #83a4d4, #b6fbff)";
+      } else {
+        document.body.style.background = "linear-gradient(to bottom, #283e51, #485563)";
+      }
     }
 
     function getWeather(city = null) {
@@ -89,6 +164,8 @@
           if (data.cod !== 200) return alert("City not found");
           const icon = data.weather[0].icon;
           const iconUrl = `http://openweathermap.org/img/wn/${icon}@2x.png`;
+          setBackground(data.weather[0].description);
+
           document.getElementById("weatherInfo").innerHTML = `
             <h2>${data.name}</h2>
             <img src="${iconUrl}" alt="icon"><br>
@@ -109,7 +186,7 @@
           });
 
           let forecastHTML = "<h3>5-Day Forecast</h3>";
-          Object.values(days).slice(0, 5).forEach(day => {
+          Object.values(days).slice(0, 5).forEach((day, i) => {
             const icon = day.weather[0].icon;
             const iconUrl = `http://openweathermap.org/img/wn/${icon}@2x.png`;
             forecastHTML += `
@@ -141,5 +218,6 @@
         alert("Permission denied or location unavailable.");
       });
     }
-  </script></body>
+  </script>
+</body>
 </html>
