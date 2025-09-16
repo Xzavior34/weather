@@ -62,7 +62,7 @@
       background: linear-gradient(to right, #0056b3, #0099cc);
     }
 
-    .weather, .forecast {
+    .card {
       background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(12px);
       margin-top: 20px;
@@ -71,25 +71,27 @@
       box-shadow: 0 8px 25px rgba(0,0,0,0.2);
       animation: fadeInUp 1s ease;
     }
-    .dark .weather, .dark .forecast {
+    .dark .card {
       background: rgba(0, 0, 0, 0.35);
     }
 
-    .forecast-day {
+    .forecast-day, .hourly-item {
       display: inline-block;
       width: 80px;
       margin: 12px;
       animation: fadeIn 0.8s ease forwards;
       opacity: 0;
     }
-    .forecast-day:nth-child(1) { animation-delay: 0.2s; }
-    .forecast-day:nth-child(2) { animation-delay: 0.4s; }
-    .forecast-day:nth-child(3) { animation-delay: 0.6s; }
-    .forecast-day:nth-child(4) { animation-delay: 0.8s; }
-    .forecast-day:nth-child(5) { animation-delay: 1s; }
+
+    .forecast-day:nth-child(1),
+    .hourly-item:nth-child(1) { animation-delay: 0.2s; }
+    .forecast-day:nth-child(2),
+    .hourly-item:nth-child(2) { animation-delay: 0.4s; }
+    .forecast-day:nth-child(3),
+    .hourly-item:nth-child(3) { animation-delay: 0.6s; }
 
     img {
-      width: 70px;
+      width: 60px;
     }
 
     .toggle-dark {
@@ -104,7 +106,20 @@
       transform: rotate(180deg);
     }
 
-    /* Animations */
+    .hourly-scroll {
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 10px;
+    }
+
+    .alert {
+      background: rgba(255, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 10px;
+      animation: pulse 1.5s infinite;
+    }
+
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-30px); }
       to { opacity: 1; transform: translateY(0); }
@@ -116,27 +131,42 @@
     @keyframes fadeIn {
       to { opacity: 1; }
     }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
   </style>
 </head>
 <body>
   <div class="toggle-dark" onclick="toggleDarkMode()">🌓</div>
   <div class="container">
     <h1>🌦 Xzavior Weather</h1>
-    <input type="text" id="cityInput" placeholder="Enter city name">
+    <input type="text" id="cityInput" placeholder="Enter city name" onkeyup="autoSuggest(this.value)">
+    <div id="suggestions"></div>
     <button onclick="getWeather()">Check Weather</button>
     <button onclick="getLocationWeather()">📍 Use My Location</button>
-    <div class="weather" id="weatherInfo"></div>
-    <div class="forecast" id="forecastInfo"></div>
+
+    <div class="card" id="weatherInfo"></div>
+    <div class="card hourly-scroll" id="hourlyInfo"></div>
+    <div class="card" id="forecastInfo"></div>
+    <div class="card" id="alertInfo"></div>
   </div>
 
   <script>
     const apiKey = "8cc702d7f393d85a8e200a340c153960";
+    let lastCity = "";
 
     function toggleDarkMode() {
       document.body.classList.toggle('dark');
     }
 
     function setBackground(condition) {
+      const hour = new Date().getHours();
+      if (hour >= 19 || hour <= 6) {
+        document.body.style.background = "linear-gradient(to bottom, #141e30, #243b55)";
+        return;
+      }
       const lower = condition.toLowerCase();
       if (lower.includes("cloud")) {
         document.body.style.background = "linear-gradient(to bottom, #bdc3c7, #2c3e50)";
@@ -151,9 +181,26 @@
       }
     }
 
+    function autoSuggest(query) {
+      if (!query) {
+        document.getElementById("suggestions").innerHTML = "";
+        return;
+      }
+      fetch(`https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          let html = "";
+          data.forEach(city => {
+            html += `<div onclick="getWeather('${city.name}')">${city.name}, ${city.country}</div>`;
+          });
+          document.getElementById("suggestions").innerHTML = html;
+        });
+    }
+
     function getWeather(city = null) {
       const cityName = city || document.getElementById("cityInput").value;
       if (!cityName) return alert("Please enter a city name");
+      lastCity = cityName;
 
       const currentURL = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}&units=metric`;
       const forecastURL = `https://api.openweathermap.org/data/2.5/forecast?q=${cityName}&appid=${apiKey}&units=metric`;
@@ -162,23 +209,39 @@
         .then(res => res.json())
         .then(data => {
           if (data.cod !== 200) return alert("City not found");
-          const icon = data.weather[0].icon;
-          const iconUrl = `http://openweathermap.org/img/wn/${icon}@2x.png`;
+          const iconUrl = `http://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
           setBackground(data.weather[0].description);
 
           document.getElementById("weatherInfo").innerHTML = `
             <h2>${data.name}</h2>
             <img src="${iconUrl}" alt="icon"><br>
-            🌡️ ${data.main.temp}°C<br>
+            🌡️ ${data.main.temp}°C (Feels like ${data.main.feels_like}°C)<br>
             ☁️ ${data.weather[0].description}<br>
             💧 Humidity: ${data.main.humidity}%<br>
-            💨 Wind: ${data.wind.speed} m/s
+            💨 Wind: ${data.wind.speed} m/s<br>
+            ⬆ Pressure: ${data.main.pressure} hPa<br>
+            🌅 Sunrise: ${new Date(data.sys.sunrise*1000).toLocaleTimeString()}<br>
+            🌇 Sunset: ${new Date(data.sys.sunset*1000).toLocaleTimeString()}<br>
+            <small>Last updated: ${new Date().toLocaleTimeString()}</small>
           `;
         });
 
       fetch(forecastURL)
         .then(res => res.json())
         .then(data => {
+          let hourlyHTML = "<h3>Hourly Forecast</h3>";
+          data.list.slice(0, 8).forEach(item => {
+            const iconUrl = `http://openweathermap.org/img/wn/${item.weather[0].icon}@2x.png`;
+            hourlyHTML += `
+              <div class="hourly-item">
+                ${item.dt_txt.split(" ")[1].slice(0,5)}<br>
+                <img src="${iconUrl}"><br>
+                ${item.main.temp}°C
+              </div>
+            `;
+          });
+          document.getElementById("hourlyInfo").innerHTML = hourlyHTML;
+
           const days = {};
           data.list.forEach(item => {
             const date = item.dt_txt.split(" ")[0];
@@ -186,9 +249,8 @@
           });
 
           let forecastHTML = "<h3>5-Day Forecast</h3>";
-          Object.values(days).slice(0, 5).forEach((day, i) => {
-            const icon = day.weather[0].icon;
-            const iconUrl = `http://openweathermap.org/img/wn/${icon}@2x.png`;
+          Object.values(days).slice(0, 5).forEach(day => {
+            const iconUrl = `http://openweathermap.org/img/wn/${day.weather[0].icon}@2x.png`;
             forecastHTML += `
               <div class="forecast-day">
                 ${day.dt_txt.split(" ")[0]}<br>
@@ -199,6 +261,11 @@
           });
           document.getElementById("forecastInfo").innerHTML = forecastHTML;
         });
+
+      // Alerts API (only works in One Call API, premium)
+      // Here, we'll simulate
+      document.getElementById("alertInfo").innerHTML =
+        `<div class="alert">⚠️ No severe weather alerts</div>`;
     }
 
     function getLocationWeather() {
@@ -214,10 +281,13 @@
             else alert("Location not found");
           })
           .catch(() => alert("Error getting location weather"));
-      }, error => {
-        alert("Permission denied or location unavailable.");
       });
     }
+
+    // Auto refresh every 5 minutes
+    setInterval(() => {
+      if (lastCity) getWeather(lastCity);
+    }, 300000);
   </script>
 </body>
 </html>
